@@ -1,26 +1,37 @@
 #!/usr/bin/python3
 #B. Vandeportaele 2020
+#T. Flayols 2020
 
 #https://realpython.com/python-sockets/
 
 import socket
 import time
-
+from IPython import embed
+import rubiks_utils
 #######################################
 def send(s,chaine):
-	s.sendall(chaine)
-	print('envoi: '+chaine.decode('utf-8'))
+  s.sendall(chaine)
+  print('envoi: '+chaine.decode('utf-8'))
 #######################################
 
-
-#6 premiers mouvements utilisé pour l'apprentissage 
+#mouvements utilisés pour l'apprentissage 
 #le rubiks est posé avec la face jaune au centre de la face supérieure
-#listMoves=['FCW','FCW','FCW','FCW','FCW','FCW','FCW','FCCW','UCW','UCCW','MCW','MCCW','END']
-listMoves=['Y','FCW','UCW','B','FCW','O','FCW','G','FCW','R','FCW','UCW','FCCW','W','FCW','FCW','UCW','UCW']
+initListMoves=['Y','FCW','UCW','B','FCW','O','FCW','G','FCW','R','FCW','UCW','FCCW','W','FCW','FCW','UCW','UCW']
 
-
+#init
+listMoves=initListMoves
 indiceMoves=0
-#tant que indiceMoves<6, on fait l'apprentissage  
+
+#Corespondance code entier vers couleur (d'apres tcv4.py)
+colorsCode = ["b","r","w","g","o","y"]
+
+yellowFace = "yyyyyyyyy"
+blueFace = "bbbbbbbbb"
+redFace = "rrrrrrrrr"
+greenFace = "ggggggggg"
+orangeFace = "ooooooooo"
+whiteFace = "wwwwwwwww"
+
 #######################################
 
 HOSTSERVER = '127.0.0.1'  # The server's hostname or IP address
@@ -65,8 +76,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
               print(str(listfields))
               if listfields[0]==b'getmove':                      
                 print('GETMOVE')
-                #if indiceMoves>=len(listMoves) or
-                if listMoves[indiceMoves]=='END':
+                if indiceMoves>=len(listMoves) or listMoves[indiceMoves]=='END':
                         print('envoi de '+str(listMoves[indiceMoves]))
                         send(c,listMoves[indiceMoves].encode('utf-8'))
                         print('FINI')
@@ -79,13 +89,33 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
                   serversocket.sendall(b'r 100 101 102 103 104 105 106 107 108')               
                   data = serversocket.recv(1024)
                   print('Received', repr(data))
-                  if listMoves[indiceMoves]=='W':
-                          #calculer la séquence... et l'ajouter à 
-                          print('listMoves.append(END)')
-                          listMoves.append('END')
-                          print(str(listMoves))
+                  faceColorStr = str(data).replace(' ','').replace("b",'').replace("r","").replace("\\","").replace("'","").replace("]","").replace("[","").replace(".0","")
+                  for i in range(6):
+                    faceColorStr = faceColorStr.replace(str(i),colorsCode[i]);
+                  if len(faceColorStr) == 9:
+                    if listMoves[indiceMoves]=='Y':
+                      yellowFace = faceColorStr
+                    elif listMoves[indiceMoves]=='B':
+                      blueFace = faceColorStr
+                    elif listMoves[indiceMoves]=='R':
+                      redFace = faceColorStr
+                    elif listMoves[indiceMoves]=='G':
+                      greenFace = faceColorStr
+                    elif listMoves[indiceMoves]=='O':
+                      orangeFace = faceColorStr
+                    elif listMoves[indiceMoves]=='W':
+                      whiteFace = faceColorStr
+                      
+                  if listMoves[indiceMoves]=='W': #Toute les faces ont été vues
+                    #Resolution du rubiks cube
+                    cubeInitialState = yellowFace + blueFace + redFace + greenFace + orangeFace + whiteFace
+                    print("solving cube: {}...".format(cubeInitialState))
+                    #time.sleep(10)
+                    solutionMoves=rubiks_utils.solve(cubeInitialState)
+                    listMoves.extend(solutionMoves) #Add all moves to save the rubiks cube
+                    listMoves.append('END')
+                    print(str(listMoves))
                   indiceMoves+=1
-                  #TODO après avoir observé la sixième face, il faut résoudre et compléter la liste de mouvements
                 #listMoves[indiceMoves] est forcement un mouvement
                 print('envoi de '+str(listMoves[indiceMoves]))
                 send(c,listMoves[indiceMoves].encode('utf-8'))
@@ -93,6 +123,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
               elif listfields[0]==b'reinit':
                 print('REINITIALISATION')
                 indiceMoves=0
+                listMoves=initListMoves
               #elif listfields[0]==b'app':
               #  print('APPRENTISSAGE FACE '+str(listfields[1]))
 
