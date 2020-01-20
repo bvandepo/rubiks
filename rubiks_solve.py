@@ -35,9 +35,15 @@ whiteFace = "wwwwwwwww"
 HOSTSERVER = '127.0.0.1'  # The server's hostname or IP address
 PORT = 30000        # The port used by the server
 
+#option -d pour affichage dans graphique dans fenetre, désactivé par défaut
+activateDisplay=False
+#pour debug
+#activateDisplay=True        
+global activateDisplay
 #######################################
 
-def communicationThread(): 
+def communicationThread():
+  global activateDisplay
   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
         serversocket.connect((HOSTSERVER, PORT))
         with  socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -169,15 +175,11 @@ def drawSquare(indx,indy,sc,img,col):
         for y in range(indy*sc,(indy+1)*sc):
             img[y][x]=col
             
-#option -d pour affichage dans graphique dans fenetre
 import sys
-activateDisplay=False
 if len(sys.argv)==2:
     if sys.argv[1]=='-d':
         activateDisplay=True
 
-#pour debug
-#activateDisplay=True        
 if activateDisplay:
     from threading import Thread
     import cv2 as cv
