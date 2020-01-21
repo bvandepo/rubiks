@@ -25,6 +25,9 @@ indiceMoves=0
 #Corespondance code entier vers couleur (d'apres tcv4.py)
 colorsCode = ["b","r","w","g","o","y"]
 
+#codage des mouvements sur KUKA:
+map_moveToCode = {'FCW':0,'FCCW':1,'UCW':2,'UCCW':3,'MCW':4,'MCCW':5, 'END':100}
+
 yellowFace = "yyyyyyyyy"
 blueFace = "bbbbbbbbb"
 redFace = "rrrrrrrrr"
@@ -32,14 +35,20 @@ greenFace = "ggggggggg"
 orangeFace = "ooooooooo"
 whiteFace = "wwwwwwwww"
 
-HOSTSERVER = '127.0.0.1'  # The server's hostname or IP address
+#######################################
+
+#HOSTSERVER = '127.0.0.1'  # The server's hostname or IP address
+HOSTSERVER = '192.168.3.11'  # The server's hostname or IP address
+
 PORT = 30000        # The port used by the server
 
+
+global activateDisplay
 #option -d pour affichage dans graphique dans fenetre, désactivé par défaut
 activateDisplay=False
 #pour debug
 #activateDisplay=True        
-global activateDisplay
+
 #######################################
 
 def communicationThread():
@@ -97,8 +106,12 @@ def communicationThread():
                   data = serversocket.recv(1024)
                   print('Received', repr(data))
                   faceColorStrNum = str(data).replace(' ','').replace("b",'').replace("r","").replace("\\","").replace("'","").replace("]","").replace("[","").replace(".0","")
+                  faceColorStr = faceColorStrNum
                   for i in range(6):
-                    faceColorStr = faceColorStrNum.replace(str(i),colorsCode[i]);
+                    faceColorStr = faceColorStr.replace(str(i),colorsCode[i]);
+                  faceColorStrNum=list(faceColorStrNum) #transforme la chaine en liste de caractères
+                  faceColorStrNum=[int(i) for i in faceColorStrNum] #transforme chaque caractère en une valeur int
+                  #print(faceColorStrNum)
                   if len(faceColorStr) == 9:
                     if listMoves[indiceMoves]=='Y':
                       yellowFace = faceColorStr
