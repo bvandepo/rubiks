@@ -76,8 +76,6 @@ def rotate_upper_CW(faces):
 
 
 
-
-
 def solve(cube):
   #call the solver
   sol_raw = utils.solve(cube, 'Kociemba')
@@ -127,7 +125,8 @@ def solve(cube):
 def main(args):
     #cube = 'wowgybwyogygybyoggrowbrgywrborwggybrbwororbwborgowryby'
     cube = 'yyyyyyyyyooobbbooobbbrrrbbbrrrgggrrrgggooogggwwwwwwwww'
-    solve(cube)
+    moves = solve(cube)
+    print(moves);
     # ~ try:
        # ~ solve(cube)
     # ~ except:
