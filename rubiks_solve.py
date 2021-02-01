@@ -34,10 +34,21 @@ whiteFace = "wwwwwwwww"
 
 #######################################
 
+#HOSTSERVER = '127.0.0.1'  # The server's hostname or IP address
 HOSTSERVER = '192.168.3.11'  # The server's hostname or IP address
 PORT = 30000        # The port used by the server
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
+global activateDisplay
+#option -d pour affichage dans graphique dans fenetre, désactivé par défaut
+#activateDisplay=False
+#pour debug
+activateDisplay=True        
+
+#######################################
+
+def communicationThread():
+  global activateDisplay
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
         serversocket.connect((HOSTSERVER, PORT))
         with  socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
           host = ""
@@ -89,22 +100,35 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
                   serversocket.sendall(b'r 100 101 102 103 104 105 106 107 108')               
                   data = serversocket.recv(1024)
                   print('Received', repr(data))
-                  faceColorStr = str(data).replace(' ','').replace("b",'').replace("r","").replace("\\","").replace("'","").replace("]","").replace("[","").replace(".0","")
+                  #faceColorStr = str(data).replace(' ','').replace("b",'').replace("r","").replace("\\","").replace("'","").replace("]","").replace("[","").replace(".0","")
+                  faceColorStrNum = str(data).replace(' ','').replace("b",'').replace("r","").replace("\\","").replace("'","").replace("]","").replace("[","").replace(".0","")
+                  faceColorStr = faceColorStrNum
+
                   for i in range(6):
                     faceColorStr = faceColorStr.replace(str(i),colorsCode[i]);
+                  faceColorStrNum=list(faceColorStrNum) #transforme la chaine en liste de caractères
+                  faceColorStrNum=[int(i) for i in faceColorStrNum] #transforme chaque caractère en une valeur int
+                  #print(faceColorStrNum)
+
                   if len(faceColorStr) == 9:
                     if listMoves[indiceMoves]=='Y':
                       yellowFace = faceColorStr
+                      if activateDisplay: drawFace(3,0,sc,img,faceColorStrNum,listeRGB)
                     elif listMoves[indiceMoves]=='B':
                       blueFace = faceColorStr
+                      if activateDisplay: drawFace(0,3,sc,img,faceColorStrNum,listeRGB)
                     elif listMoves[indiceMoves]=='R':
                       redFace = faceColorStr
+                      if activateDisplay: drawFace(3,3,sc,img,faceColorStrNum,listeRGB) 
                     elif listMoves[indiceMoves]=='G':
                       greenFace = faceColorStr
+                      if activateDisplay: drawFace(6,3,sc,img,faceColorStrNum,listeRGB)    
                     elif listMoves[indiceMoves]=='O':
                       orangeFace = faceColorStr
+                      if activateDisplay: drawFace(9,3,sc,img,faceColorStrNum,listeRGB)     
                     elif listMoves[indiceMoves]=='W':
                       whiteFace = faceColorStr
+                      if activateDisplay: drawFace(3,6,sc,img,faceColorStrNum,listeRGB)        
                       
                   if listMoves[indiceMoves]=='W': #Toute les faces ont été vues
                     #Resolution du rubiks cube
@@ -132,6 +156,71 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
           #jamais exécuté en fait: 
           print('fermeture socket s')
           s.close()               
-           
-           
+                      
+#######################################           
+def animationThread():
+  #pour debug
+  time.sleep(1)
+  drawSquare(6,4,sc,img,(255,0,0))
+  time.sleep(1)
+  drawSquare(8,2,sc,img,(0,0,255))
+  time.sleep(1)
+  drawFace(3,0,sc,img,[0,1,2,3,4,5,0,1,2],listeRGB)
+  time.sleep(1)
+  drawFace(0,3,sc,img,[0,0,0,0,0,0,0,0,0],listeRGB)
+  time.sleep(1)
+  drawFace(3,3,sc,img,[5,5,5,0,0,0,0,0,0],listeRGB)
+  time.sleep(1)
+  drawFace(6,3,sc,img,[5,5,5,0,0,0,0,0,0],listeRGB)
+  time.sleep(1)
+  drawFace(9,3,sc,img,[0,0,0,0,0,0,0,0,0],listeRGB)
+  time.sleep(1)
+  drawFace(3,6,sc,img,[5,5,5,0,0,0,0,0,0],listeRGB)
+
+#######################################
+sc=30 #taille en pixel d'un coté de carré
+
+def drawFace(indx,indy,sc,img,listcol,listeRGB):
+    for y in range(0,3):
+      for x in range(0,3):
+            col=listeRGB[listcol[x+y*3]]
+            print('x: '+str(x)+' , y: '+str(y)+' , ind: '+str(listcol[x+y*3])+' , col: '+ str(col))
+            drawSquare(indx+x,indy+y,sc,img,col)
+                
+def drawSquare(indx,indy,sc,img,col):
+    for x in range(indx*sc,(indx+1)*sc):
+        for y in range(indy*sc,(indy+1)*sc):
+            img[y][x]=col
+            
+import sys
+if len(sys.argv)==2:
+    if sys.argv[1]=='-d':
+        activateDisplay=True
+
+if activateDisplay:
+    from threading import Thread
+    import cv2 as cv
+    import numpy as np        
+    listeRGB=[] #chargement des couleurs des faces depuis fichier
+    filedata = np.genfromtxt('listecolors.out', delimiter=',').astype('uint8')
+    for i in range(0,6): listeRGB.append(filedata[i]) 
+    print(listeRGB)     
+    img = np.zeros((3*sc*3,3*sc*4,3), np.uint8)
+    #lance une thread pour raffraichir périodiquement l'affichage avec les données entrantes
+    print('démarre thread')
+    t=Thread(target=communicationThread,args=())
+    #pour debug
+    #t=Thread(target=animationThread,args=())
+    t.start()
+    while(True):
+      cv.imshow('image',img)
+      if cv.waitKey(20) & 0xFF==ord("q"):
+        cv.destroyAllWindows()
+        sys.exit()  #violent, mais au moins tue la thread de communication, libérant la socket
+else:
+#lancement sans affichage
+  communicationThread()
+#######################################
+          
+          
 
